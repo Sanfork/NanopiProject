@@ -300,7 +300,7 @@ void pthread_UART2WiFi (void* data)
 				i = clientListHead;
 				while(1){
 					sockt = i->clientId;
-					send(sockt, buff, sizeof(buff)/sizeof(buff[0]), 0);
+					send(sockt, buff, nread, 0);
 					if(i->nextClient == clientListHead) break;
 					i = i->nextClient;
 				}
