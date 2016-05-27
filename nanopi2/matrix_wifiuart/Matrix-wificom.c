@@ -28,7 +28,7 @@
 #include <assert.h>
 
 
-#define MAXLINE 5
+#define MAXRECVBUFF 1024
 #define SERV_PORT 8888
 
 typedef enum boolbean {
@@ -312,7 +312,7 @@ void wifi2uart(int clien_fd){
 	int n;
 	char ret;
 
-	char mesg[MAXLINE];
+	char mesg[MAXRECVBUFF];
 
 	for(;;){
 		n = recv(clien_fd, mesg,4096,0);
