@@ -107,12 +107,8 @@ int deleteNode(int data){
 					break;
 				}else{
 					pointerTmp = i->nextClient;
-					if(pointerTmp->nextClient == clientListHead){
-						/*Two nodes*/
-						printf("two nodes\n");
-						pointerTmp->nextClient = clientListTail;
-					}
 					clientListHead = i->nextClient;
+					clientListTail->nextClient = clientListHead;
 					pointerTmp->preClient = clientListTail;
 
 					free(i);
@@ -297,8 +293,16 @@ void pthread_UART2WiFi (void* data)
 			nread = read(uartfd,buff,256);
 			if(nread>0)
 			{
+				if(clientListHead == NULL){
+					printf("Node list is empty\n");
+					continue;//List is NULL				
+				}				
 				i = clientListHead;
 				while(1){
+					if(i == NULL){
+						printf("Node is empty\n");
+						break;
+					}
 					sockt = i->clientId;
 					send(sockt, buff, nread, 0);
 					if(i->nextClient == clientListHead) break;
@@ -347,8 +351,10 @@ void wifi2uart(int clien_fd){
 	}
 }
 
-void thread_wifiUart(int clientFd){
+void pthread_wifiUart(int clientFd){
 	int fd = *((int *) clientFd);
+
+	pthread_detach(pthread_self());//detach thread
 
 	//Receive data from wifi to uart
 	wifi2uart(fd);
@@ -429,7 +435,7 @@ int main(void){
 
 		appendList(clifd);
 		/*Create Thread to send CMD from uart to wifi*/
-		ret = pthread_create (&thread_id, NULL, (void*)(&thread_wifiUart), (void*)(&clifd));
+		ret = pthread_create (&thread_id, NULL, (void*)(&pthread_wifiUart), (void*)(&clifd));
 		if (ret != 0)
 		{
 		 perror ("pthread_create error!");
@@ -442,5 +448,3 @@ int main(void){
 	assert(ret != -1);
 	return 0;
 }
-
-
