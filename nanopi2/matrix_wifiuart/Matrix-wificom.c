@@ -106,10 +106,10 @@ int deleteNode(int data){
 					ret = 0;
 					break;
 				}else{
-					pointerTmp = i->nextClient;
+					//pointerTmp = i->nextClient;
 					clientListHead = i->nextClient;
 					clientListTail->nextClient = clientListHead;
-					pointerTmp->preClient = clientListTail;
+					clientListHead->preClient = clientListTail;
 
 					free(i);
 					printf("node is head\n");
@@ -117,7 +117,7 @@ int deleteNode(int data){
 					break;
 				}
 			}else if(i == clientListTail){/*The node is tail*/
-				pointerTmp = i->nextClient;
+				//pointerTmp = i->nextClient;
 				clientListTail = i->preClient;
 				clientListTail->nextClient = clientListHead;
 				clientListHead->preClient = clientListTail;
