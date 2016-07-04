@@ -23,7 +23,9 @@
 #include <pthread.h>
 #include "libfahw.h"
 #include <assert.h>
-
+#include <unistd.h>
+#include <sys/poll.h>
+#include "../../lib/common.h"
 
 #define MAXRECVBUFF 1024
 #define SERV_PORT 8888
@@ -37,7 +39,7 @@ typedef enum boolbean {
 #define SERV_PORT 8888
 
 
-int sockfd, clifd,forwardPin,backwardPin,leftPin,rightPin;
+int sockfd, clifd,forwardPin,backwardPin,leftPin,rightPin,ultrasonicPin;
 struct sockaddr_in servaddr, cliaddr;
 
 void directControl(int clien_fd){
@@ -133,9 +135,90 @@ void pthread_direcCon(int clientFd){
 
 }
 
+void pthread_ultralsonic(int parameter){
+
+	char ultrasonicEchoPath[60] = "/sys/class/gpio/gpio";
+	char ultrasonicEchoPathEdge[60];
+	char ultrasonicEchoPathValue[60];
+	char *ultrasonicEchoStr;
+	char buff[10];
+	int ret, ultrasonicEcho ,ultrasonicEchoPinNum,ultrasonicEcho_fd;
+        struct pollfd fds[1] ;
+
+	ultrasonicPin = GPIO_PIN(12);
+	ultrasonicEcho = GPIO_PIN(18);
+	printf("pthread_ultralsonic start\n");
+	
+
+	//initialize triger pin	
+	if ((ret = exportGPIOPin(ultrasonicPin)) == -1) {
+	printf("exportGPIOPin(%d) failed\n", ultrasonicPin);
+	}
+	if ((ret = setGPIODirection(ultrasonicPin, GPIO_OUT)) == -1) {
+	printf("setGPIODirection(%d) failed\n", ultrasonicPin);
+	}
+	//initialize ultrasonic to sensor
+	if ((ret = exportGPIOPin(ultrasonicEcho)) == -1) {
+	printf("exportGPIOPin(%d) failed\n", ultrasonicEcho);
+	}
+	//initialize ultrasonic to sensor
+	if ((ret = setGPIODirection(ultrasonicEcho,GPIO_IN)) == -1) {
+	printf("exportGPIOPin(%d) failed\n", ultrasonicEcho);
+	}
+
+	ultrasonicEchoPinNum = pintoGPIO(GPIO_PIN(18));
+	printf("ultralsonic PinNumber is %d\n",ultrasonicEchoPinNum);	
+	//itoa(ultrasonicEchoPinNum,ultrasonicEchoStr,10);
+	ultrasonicEchoStr = (char *)malloc(sizeof(int) + 1);  //分配动态内存
+	memset(ultrasonicEchoStr, 0, sizeof(int) + 1);              //内存块初始化
+	sprintf(ultrasonicEchoStr, "%d", ultrasonicEchoPinNum);      //整数转化为字符串
+
+	//strcpy(ultrasonicEchoStr,"gpio"+ultrasonicEchoStr);
+	strcat(ultrasonicEchoPath,ultrasonicEchoStr);//  /sys/class/gpio/gpio18
+	printf("ultralsonic PinNumber is %s\n",ultrasonicEchoPath);
+	strcpy(ultrasonicEchoPathEdge,ultrasonicEchoPath);
+	strcat(ultrasonicEchoPathEdge,"/edge"); //  /sys/class/gpio/gpio18/edge
+
+	writeValueToFile(ultrasonicEchoPath, "both");
+	strcpy(ultrasonicEchoPathValue,ultrasonicEchoPath);
+	strcat(ultrasonicEchoPathValue,"/value");//  /sys/class/gpio/gpio18/value	
+	ultrasonicEcho_fd = open(ultrasonicEchoPathValue, O_RDONLY);
+	if(ultrasonicEcho_fd == -1) printf("Open gpio fail\n");
+	fds[0].fd = ultrasonicEcho_fd;
+	fds[0].events = POLLPRI;
+	ret = read(ultrasonicEcho_fd,buff,10);
+	if(ret == -1 ) printf("Read ultrasonicEcho_fd fail\n");
+	
+        
+
+	while(1){
+		//triger send 60us high 
+		if ((ret = setGPIOValue(ultrasonicPin, GPIO_HIGH)) == -1) {
+			printf("setGPIODirection(%d)HIGH failed\n", ultrasonicPin);
+		}
+		usleep(60);
+		if ((ret = setGPIOValue(ultrasonicPin, GPIO_LOW)) == -1) {
+			printf("setGPIODirection(%d)HIGH failed\n", ultrasonicPin);
+		}
+
+		ret = poll(fds, 1 , -1);
+		if(ret == -1) printf("poll fail\n");
+
+		if(fds[0].revents & POLLPRI){
+		ret = lseek(ultrasonicEcho_fd,0,SEEK_SET);
+		if(ret == -1) printf("Lseek fail\n");
+		ret = read(ultrasonicEcho_fd,buff,10);
+		if(ret == -1) printf("Read ultrasonicEcho_fd fail\n");
+		printf("Read ultrasonicEcho_fd %s\n",buff);
+		sleep(2);
+		}		
+	}	
+}
+
 int main(void){
 
 	int ret = -1;
+	pthread_t thread_id;
 	int on = 1;
 
 	//Initializing GPIO
@@ -198,6 +281,15 @@ int main(void){
 		perror("listen");  
 		exit(1);  
 	}
+
+	thread_id = 0;
+	/*Create Thread to create ultrasonic*/
+	ret = pthread_create (&thread_id, NULL, (void*)(&pthread_ultralsonic), NULL);
+	if (ret != 0)
+	{
+	 perror ("pthread_create error!");
+	}	
+
 
 	while(1){
 		pthread_t thread_id = 0;
