@@ -4,6 +4,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/times.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -25,6 +26,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <sys/poll.h>
+#include <time.h>
 #include "../../lib/common.h"
 
 #define MAXRECVBUFF 1024
@@ -144,6 +146,8 @@ void pthread_ultralsonic(int parameter){
 	char buff[10];
 	int ret, ultrasonicEcho ,ultrasonicEchoPinNum,ultrasonicEcho_fd;
         struct pollfd fds[1] ;
+	struct timespec time_start={0,0},time_end={0,0};
+	long fCostTime;
 
 	ultrasonicPin = GPIO_PIN(12);
 	ultrasonicEcho = GPIO_PIN(18);
@@ -178,10 +182,11 @@ void pthread_ultralsonic(int parameter){
 	printf("ultralsonic PinNumber is %s\n",ultrasonicEchoPath);
 	strcpy(ultrasonicEchoPathEdge,ultrasonicEchoPath);
 	strcat(ultrasonicEchoPathEdge,"/edge"); //  /sys/class/gpio/gpio18/edge
-
-	writeValueToFile(ultrasonicEchoPath, "both");
+	printf("ultralsonic path edge is %s\n",ultrasonicEchoPathEdge);
+	writeValueToFile(ultrasonicEchoPathEdge, "both");
 	strcpy(ultrasonicEchoPathValue,ultrasonicEchoPath);
-	strcat(ultrasonicEchoPathValue,"/value");//  /sys/class/gpio/gpio18/value	
+	strcat(ultrasonicEchoPathValue,"/value");//  /sys/class/gpio/gpio18/value
+	printf("ultralsonic path value is %s\n",ultrasonicEchoPathValue);	
 	ultrasonicEcho_fd = open(ultrasonicEchoPathValue, O_RDONLY);
 	if(ultrasonicEcho_fd == -1) printf("Open gpio fail\n");
 	fds[0].fd = ultrasonicEcho_fd;
@@ -205,13 +210,30 @@ void pthread_ultralsonic(int parameter){
 		if(ret == -1) printf("poll fail\n");
 
 		if(fds[0].revents & POLLPRI){
-		ret = lseek(ultrasonicEcho_fd,0,SEEK_SET);
-		if(ret == -1) printf("Lseek fail\n");
-		ret = read(ultrasonicEcho_fd,buff,10);
-		if(ret == -1) printf("Read ultrasonicEcho_fd fail\n");
-		printf("Read ultrasonicEcho_fd %s\n",buff);
-		sleep(2);
+			ret = lseek(ultrasonicEcho_fd,0,SEEK_SET);
+			if(ret == -1) printf("Lseek fail\n");
+			ret = read(ultrasonicEcho_fd,buff,10);
+			if(ret == -1) printf("Read ultrasonicEcho_fd fail\n");
+			printf("Read ultrasonicEcho_fd %s\n",buff);
+			clock_gettime(CLOCK_REALTIME,&time_start);
+			printf("Start time %lu s, %lu ns", time_start.tv_sec, time_start.tv_nsec);
+			
+		}
+
+		ret = poll(fds, 1 , -1);
+		if(ret == -1) printf("poll fail\n");
+
+		if(fds[0].revents & POLLPRI){
+			ret = lseek(ultrasonicEcho_fd,0,SEEK_SET);
+			if(ret == -1) printf("Lseek fail\n");
+			ret = read(ultrasonicEcho_fd,buff,10);
+			if(ret == -1) printf("Read ultrasonicEcho_fd fail\n");
+			printf("Read ultrasonicEcho_fd %s\n",buff);
+			clock_gettime(CLOCK_REALTIME,&time_end);
+			printf("Start time %lu s, %lu ns", time_end.tv_sec, time_end.tv_nsec);
 		}		
+		fCostTime = (long)(time_end.tv_nsec - time_start.tv_nsec);
+		printf("cost time %lu s\n",fCostTime);
 	}	
 }
 
