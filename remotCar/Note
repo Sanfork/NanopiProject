@@ -1,33 +1,33 @@
 1	视频部分
 1.1	摄像头选择
 1.1.1	DVP接口摄像头
-Matrix - CAM500A
-需求：驱动，视频服务器，
-实现困难，暂不采取
+   Matrix - CAM500A
+   需求：驱动，视频服务器，
+   实现困难，暂不采取
 1.1.2	USB摄像头
-需UVC driver/tool（tool中自带视频服务器功能）
-→motion使用：
-  安装：sudo apt-get install motion
-  配置：sudo vi /etc/motion/motion.conf
-找到”control_localhost on “和”webcam_localhost on“这两行，改为以下两行后，保存退出
-control_localhost off
-webcam_localhost off
- 			   调试：配置端口8080 监控端口8081
-             →mjpg_streamer
-				安装：
-$sudo apt-get install libv4l-dev  
-$sudo apt-get install libjpeg8-dev  
-$sudo apt-get install imagemagick 
+   需UVC driver/tool（tool中自带视频服务器功能）
+   →motion使用：
+   安装：sudo apt-get install motion
+    配置：sudo vi /etc/motion/motion.conf
+   找到”control_localhost on “和”webcam_localhost on“这两行，改为以下两行后，保存退出
+   control_localhost off
+    webcam_localhost off
+    调试：配置端口8080 监控端口8081
+    →mjpg_streamer
+    安装：
+    $sudo apt-get install libv4l-dev  
+    $sudo apt-get install libjpeg8-dev  
+    $sudo apt-get install imagemagick 
 				mjpg_streamer源码包进行编译安装，这里说明一下，直接编译安装程序会报错，需要先运行一下命令，创建一个软连接
-sudo ln -s /usr/include/libv4l1-videodev.h /usr/include/linux/videodev.h  
-创建完成后开始下载编译安装mjpg_streamer源码包
-$wget http://sourceforge.net/code-snapshots/svn/m/mj/mjpg-streamer/code/mjpg-streamer-code-182.zip  
-$unzip mjpg-streamer-code-182.zip  
-$cd mjpg-streamer-code-182/mjpg-streamer  
-&sudo make USE_LIBV4L2=true clean all  
-$sudo make DESTDIR=/usr install  
-编译安装完成后，运行程序目录下的start..sh命令启动服务
-监控端口: 8080 
+                                sudo ln -s /usr/include/libv4l1-videodev.h /usr/include/linux/videodev.h  
+                                创建完成后开始下载编译安装mjpg_streamer源码包
+    $wget http://sourceforge.net/code-snapshots/svn/m/mj/mjpg-streamer/code/mjpg-streamer-code-182.zip  
+    $unzip mjpg-streamer-code-182.zip  
+    $cd mjpg-streamer-code-182/mjpg-streamer  
+    &sudo make USE_LIBV4L2=true clean all  
+    $sudo make DESTDIR=/usr install  
+     编译安装完成后，运行程序目录下的start..sh命令启动服务
+    监控端口: 8080 
 
 1.2	视频服务器建立
 1.2.1	Nanopi2取消热点模式
