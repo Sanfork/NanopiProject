@@ -31,7 +31,9 @@
 #define SERV_PORT 8888
 #define BUFSIZE 8
 #define HCSR04DEVICE "/dev/hcsr04"
-
+#define PWMDEVICE "/dev/pwm"
+#define MOVEHZ  1000
+#define MOVEDUTY 500
 typedef enum boolbean {
 	false,
 	true
@@ -65,7 +67,7 @@ struct msg_st{
 };
 
 /********Variable*************/
-int sockfd, clifd,forwardPin,backwardPin,leftPin,rightPin,ultrasonicPin;
+int sockfd, pwmfd, clifd,forwardPin,backwardPin,leftPin,rightPin,ultrasonicPin;
 DIRECTION carDirection;
 DISTANCE  carDistance;
 key_t key;
@@ -81,13 +83,40 @@ static void pthread_wifiCon(int clientFd);
 static void pthread_ultralsonic(int parameter);
 static void autoModePthreadKill(int sig);
 static void ultralsonicPthreadKill(int sig);
+static int setforward(void);
+static int stopforward(void);
+static int setbackward(void);
+static int stopbackward(void);
 /*
 static void pthread_traction(int parameter){
 	pthread_detach(pthread_self());//detach thread
 	while(1);
 	pthread_exit(NULL);
 }*/
+static int setforward(){
+    int ret; 
+    ret = PWMPlay(PWM0, MOVEHZ, MOVEDUTY);
+    return ret;
+}
 
+static int stopforward(){
+    int ret;
+    ret = PWMStop(PWM0);
+    return ret;
+}
+
+static int setbackward(){ 
+    int ret;
+    ret = PWMPlay(PWM1, MOVEHZ, MOVEDUTY);
+    return ret;
+}
+
+static int stopbackward(){
+    int ret;
+    ret = PWMStop(PWM1);
+    return ret;
+}
+ 
 static void ultralsonicPthreadKill(int sig){
 	ultrasonicKillFlag = true;
 }
@@ -151,14 +180,33 @@ static void pthread_autoMode(int parameter){
 
 		 if(msgData.data == safe){
 			printf(" safe \n");
-			ret = setGPIOValue(forwardPin, GPIO_HIGH);
+
+			ret = stopbackward();
+                        //setGPIOValue(backwardPin, GPIO_LOW);
 			if (ret == -1) {
-				printf("setGPIOValue(%d) failed\n", forwardPin);
+				printf("stop backward failed\n");
+			}
+                        usleep(500000);
+			ret = setforward();
+                         //setGPIOValue(forwardPin, GPIO_HIGH);
+			if (ret == -1) {
+				printf("set forward failed\n");
 			}
 			printf("SET UPSTART\n");
 
 		 } else if(msgData.data == danger){
 			 printf(" danger\n");
+			ret = stopforward();
+                        //setGPIOValue(forwardPin, GPIO_LOW);
+			if (ret == -1) {
+				printf("stop forward failed\n");
+			}
+                        usleep(500000);
+			ret = setbackward();
+			//ret = setGPIOValue(backwardPin, GPIO_HIGH);
+			if (ret == -1) {
+				printf("Set backward failed\n");
+			}
 		 }
 
 		 if(autoModeKillFlag == true) break;
@@ -180,6 +228,7 @@ static void receiveCommand(int clien_fd){
 		if(n <= 0){
 			if(n == EINTR){
 				continue; /*Connectiong is normal, communication has abnormal*/
+
 			} else {
 				printf("client disconnect\n");
 				result = close(clien_fd);
@@ -221,27 +270,33 @@ static void receiveCommand(int clien_fd){
 
 
 				}else if((ret = strstr(mesg,"UPSTART" )) != NULL){
-					result = setGPIOValue(forwardPin, GPIO_HIGH);
+			                result = setforward();	
+                                 //	result = setGPIOValue(forwardPin, GPIO_HIGH);
 			        if (result == -1) {
-			            printf("setGPIOValue(%d) failed\n", forwardPin);
+			           // printf("setGPIOValue(%d) failed\n", forwardPin);
+                                      printf("setforward fail\n");
 			        }
 					printf("SET UPSTART\n");
 				}else if((ret = strstr(mesg,"UPSTOP" )) != NULL){
-					result = setGPIOValue(forwardPin, GPIO_LOW);
+				//	result = setGPIOValue(forwardPin, GPIO_LOW);
+                                        result = stopforward();
 			        if (result == -1) {
-			            printf("setGPIOValue(%d) failed\n", forwardPin);
+			           // printf("setGPIOValue(%d) failed\n", forwardPin);
+                                      printf("stopforward fail\n");
 			        }
 					printf("SET UPSTOP\n");
 				}else if((ret = strstr(mesg,"BACKSTART" )) != NULL){
-					result = setGPIOValue(backwardPin, GPIO_HIGH);
+					result = setbackward();
+                                        //setGPIOValue(backwardPin, GPIO_HIGH);
 			        if (result == -1) {
-			            printf("setGPIOValue(%d) failed\n", backwardPin);
+			            printf("set backward fail\n");
 			        }
 					printf("SET BACKSTART\n");
 				}else if((ret = strstr(mesg,"BACKSTOP" )) != NULL){
-					result = setGPIOValue(backwardPin, GPIO_LOW);
+					result = stopbackward();
+                                         //setGPIOValue(backwardPin, GPIO_LOW);
 			        if (result == -1) {
-			            printf("setGPIOValue(%d) failed\n", backwardPin);
+			            printf("stop backward failed\n");
 			        }
 					printf("SET BACKSTOP\n");
 				}else if((ret = strstr(mesg,"LEFTSTART" )) != NULL){
@@ -375,7 +430,7 @@ static void pthread_wifiCon(int clientFd){
 }
 
 static void pthread_ultralsonic(int parameter){
-	int fd, ret;
+	int fd;
 	char buff[255];
 	int distance, msgid,msgqid,msgrealid;
 	struct msg_st msgdata;
@@ -385,7 +440,7 @@ static void pthread_ultralsonic(int parameter){
 	memset(buff, 0, sizeof(buff));
 	printf("pthread_ultralsonic start\n");
 
-	fd = open(HCSR04DEVICE,O_RDER);
+	fd = open(HCSR04DEVICE,O_RDWR);
 	if(fd == -1){
 		printf("open device fail\n");
 		goto end1;
@@ -409,10 +464,10 @@ static void pthread_ultralsonic(int parameter){
 	msgdata.msg_type = 1;
 
 	while(1){
-		ret = read(fd, buff, sizeof(buff));
+		read(fd, buff, sizeof(buff));
 		distance = atoi(buff);
 		distance = (int)(distance / 58);
-		printf("distance is %d", distance);
+	        //printf("distance is %d", distance);
 		if(distance <100 && distance > 0){
 			if(carDistance == safe){
 				msgdata.data=danger;
@@ -503,6 +558,13 @@ int main(void){
 	//Initialize message queue
 	key = ftok(msgpath,'a');
 
+        //initialize PWM   
+       // pwmfd = openHW(PWMDEVICE, O_RDONLY);
+       // if(pwmfd == -1){
+       //     perror("open pwm fail\n"); 
+       //     exit(1);
+
+        //} 
 	//Initialize socket
 	if((sockfd = socket(AF_INET, SOCK_STREAM,0))==-1){
 		perror("socket");
@@ -516,7 +578,7 @@ int main(void){
 
 	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0){
 		perror("sockopt error");
-		exit(1);
+		
 	}
 
 	if(bind(sockfd, (struct sockaddr *)&servaddr,sizeof(servaddr)) == -1){
