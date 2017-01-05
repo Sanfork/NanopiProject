@@ -106,12 +106,12 @@ ultrasonicEcho管脚定为GPIO18
 技术难点：
 us级别的时间检测 → Linux中计时器的使用
 时间计算：http://www.cnblogs.com/clover-toeic/p/3845210.html
-#include <sys/times.h>
-struct timespec time_start={0,0},time_end={0,0};
-long fCostTime;
-clock_gettime(CLOCK_REALTIME,&time_start);
-clock_gettime(CLOCK_REALTIME,&time_end);
-fCostTime = (long)(time_end.tv_nsec - time_start.tv_nsec);
+_#include <sys/times.h>
+	struct timespec time_start={0,0},time_end={0,0};
+	long fCostTime;
+	clock_gettime(CLOCK_REALTIME,&time_start);
+	clock_gettime(CLOCK_REALTIME,&time_end);
+	fCostTime = (long)(time_end.tv_nsec - time_start.tv_nsec);
 这种方案可以测出距离，但很不稳定，会有错误的距离算出，会有负值的距离算出，而且是一个正确的，后面一个负值，在后面一个正确值。并且程序会卡死，原理待查
 II. 内核态监听GPIO： 参照matrix-ultrasonicranger使用matrix_hcsr04模块
 难点：
