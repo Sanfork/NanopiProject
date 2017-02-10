@@ -1,11 +1,11 @@
-# NanopiProject
-1	视频部分
-1.1	摄像头选择
-1.1.1	DVP接口摄像头
+# Smart Car Project
+##1	视频部分
+###1.1	摄像头选择
+####1.1.1	DVP接口摄像头
 Matrix - CAM500A
 需求：驱动，视频服务器，
 实现困难，暂不采取
-1.1.2	USB摄像头
+####1.1.2	USB摄像头
 需UVC driver/tool（tool中自带视频服务器功能）
 →motion使用：
 安装：sudo apt-get install motion
@@ -32,8 +32,8 @@ $sudo make DESTDIR=/usr install
 编译安装完成后，运行程序目录下的start..sh命令启动服务
 监控端口: 8080 
 
-1.2	视频服务器建立
-1.2.1	Nanopi2取消热点模式
+###1.2	视频服务器建立
+####1.2.1	Nanopi2取消热点模式
 实现方法：用vi或在图形界面下用gedit编辑文件 /etc/wpa_supplicant/wpa_supplicant.conf, 在文件末尾填入路由器信息如下所示：
 network={
         ssid="YourWiFiESSID"
@@ -48,22 +48,22 @@ su
 turn-wifi-into-apmode no
 
 
-1.2.2	UDP协议来传输
-1.3	WIFI视频传输
+####1.2.2	UDP协议来传输
+###1.3	WIFI视频传输
 
-2	Android app 实现
-2.1	APP访问视频服务器并显示
-2.2
+##2	Android app 实现
+###2.1	APP访问视频服务器并显示
+###2.2
 
-3	避障
-3.1	使用HC-SR04超声波测距模块
-3.1.1	硬件说明
+##3	避障
+###3.1	使用HC-SR04超声波测距模块
+####3.1.1	硬件说明
 （1）	采用IO口TRIG触发测距。给至少10us的高电平新号
 （2）	模块制动发送8个40khz的方波，自动检测是否有信号返回
 （3）	有信号返回，通过IO口ECHO输出一个高电平，高电平持续时间就是超声波从发射到返回的时间。测试距离=（高电平时间*声速（340M/S））/2.
 
-3.2	解决方案
-3.2.1	10us电平输出。
+###3.2	解决方案
+####3.2.1	10us电平输出。
 技术实现：
 1.PWM的使用方法 （不行，因为S5P4418的PWM的范围是30HZ ） 
 → 使用matrix-pwm，需要编译module，然后安装。
@@ -190,12 +190,12 @@ http://www.latelee.org/embedded-linux/a-simple-char-driver.html
 ②	创建设备文件 mknod /dev/hcsr04 c 主设备号 次设备号 (cat /proc/devices 查询主设备号)
 运行成功，距离检测正确。
 遗留问题：使用一次后再开，出现open device faile 待查 → 没有free_irq。
-3.2.2	在主控程序中调用HCSR04设备。
+####3.2.2	在主控程序中调用HCSR04设备。
 由于实验中出现误报的情况，故在监听中加入滤波功能，即受到距离在少于或超出某个范围时，等下一次测量来进行确认。确认情况改变后在发出消息。
-3.2.3	避障处理方案
+####3.2.3	避障处理方案
 
 
-3.2.3.1	总体方案
+#####3.2.3.1	总体方案
 在选择Auto运行状态后，开启一个进程开始控制小车自动行驶，同时再开一个超声波的进程来监控距离。两个进程之间使用消息队列进行通信。超声波进程通知小车距离障碍的安全与危险状态。当小车收到危险状态时，改变车子的行驶状态，直到收到安全状态通知为止。
 Linux 线程通信方法：http://blog.csdn.net/ljianhui/article/details/10287879 
 msgget(key_t key, int msgflg) 创建访问消息队列
@@ -208,25 +208,25 @@ msgrcv(int msgid, void *msg_ptr, size_t msg_st, long int msgtype, int msgflg)
 msgctl(int msgid, int command, struct msgid_ds *buf);// command值为IPC_RMID是删除消息队列
 
 
-3.2.3.2	改变行驶状态的解决方案
+#####3.2.3.2	改变行驶状态的解决方案
 
 
-3.2.4	模式切换。
+####3.2.4	模式切换。
 
 解决方案：1.进入MENU模式时，Kill掉AUTO线程。进入AUTO模式时，再次Create。
 2.使线程暂停，然后需要时重启。（Linux中不支持进程挂起）
-4	轨迹
+##4	轨迹
 
 
-5	手机模拟方向盘控制小车。
-5.1	方案：使用重力加速传感器。通过Y轴和Z轴值的变化来控制小车。
+##5	手机模拟方向盘控制小车。
+###5.1	方案：使用重力加速传感器。通过Y轴和Z轴值的变化来控制小车。
 首先手机横置，
 手机向左倾斜时（Y轴值<0）：车子左转
 手机向水平时（Y轴值=0）：车子直行
 手机向右倾斜时（Y轴值>0）：车子左转
 手机向前倾斜时（Z轴值>6）：车子前进
 手机向后倾斜式（Z轴值<6）：车子后退
-5.2	Android重力加速传感器使用
+###5.2	Android重力加速传感器使用
 private void gravityTest(){
 	sensorMgr = (SensorManager) getSystemService(SENSOR_SERVICE);
 	final Sensor sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -245,35 +245,35 @@ private void gravityTest(){
 	sensorMgr.registerListener(lsn, sensor, SensorManager.SENSOR_DELAY_UI);
 }
 
-5.3	改变小车行驶速度
+###5.3	改变小车行驶速度
 
-5.3.1	方案：使用占空比为50%的方波进行前进与后退控制
+####5.3.1	方案：使用占空比为50%的方波进行前进与后退控制
 难点：占空比方波的实现方法，方波的周期。
 实现：使用PWM来实现方波，PWM的实现方法
 1.调用/drivers/char/matrix_pwm.c来建立PWM的device
 2.调用Matrix/lib/pwm.c中的PWMPlay()和PWMStop()对PWM进行控制。
 目前使用HZ=1000 duty=500,当duty<500时无法驱动电机。
-5.3.2	
+####5.3.2	
 
 
-6	程序架构设计
+##6	程序架构设计
 设计auto,menu,traction三个操作模式:
 难点：模式切换时，线程的终止与重启。
 方案：1.使用pthread_kill, 发送SIGKILL. 结果发生进程退出
 2. 使用pthread_cancel.只能在创建该线程的线程中调用。
 3. 利用全局变量，当发现被置位时，退出循环而退出线程。
 设置start，stop 状态模式
-7	附注
+##7	附注
 
-7.1	Linux signal处理
+###7.1	Linux signal处理
 1.	初始化struct sigaction
 2.	初始化sa_handler
 3.	调用int sigaddset(sigset_t *set,int signum);
 4.	调用int sigaction(int signum,const struct sigaction *act ,struct sigaction *oldact);
-7.2	Uboot 编译时 make s5p4418_nanopi2_config 发生 bin/sh 0 illegal option –
+###7.2	Uboot 编译时 make s5p4418_nanopi2_config 发生 bin/sh 0 illegal option –
 1.	所使用的uboot源码是用smartgit pull下来的故里面的文件时dos编码，故在ubuntu上使用bash编译前要使用 dos2unix mkconfig来进行转码到utf8才行
 2.	要转变文件夹内所有文件编码：find -type f | xargs dos2unix -o
-7.3	编译linux时，直接使用make 时发生no rule to make target 'net/netfilter/xt_tcpmss.o' , needed by net/netfilter/built-in.o'
+###7.3	编译linux时，直接使用make 时发生no rule to make target 'net/netfilter/xt_tcpmss.o' , needed by net/netfilter/built-in.o'
 解决过程：
 1. obj-y生成built-in.o
 Kbuild编译所有的$(obj-y)文件，并调用”$(LD) -r”把所有这些文件合并到built-in.o文件。这个built-in.o会被上一级目录的Makefile使用，最终链接到vmlinux中。
@@ -282,12 +282,12 @@ Kbuild编译所有的$(obj-y)文件，并调用”$(LD) -r”把所有这些文�
 MSS表示TCP数据包的每次能够传输的最大数据分段。MSS的主要作用是在TCP建立连接的过程通常要写上对发的MSS值，这个值是TCP协议实现的时候根据MTU换算而得（主要是1500-20个大小的包头-20个大小的TCP数据包头）。因此一般的MSS值大小为1460. 
 
 发现在/net/netfilter/Makefile中有obj-$(CONFIG_NETFILTER_XT_TARGET_TCPMSS) += xt_TCPMSS.o 但与文件名xt_tcpmss不同（大小写不同）。将大写改为小写后通过编译。
-7.4	编译uImage时缺少mkimage命令
+###7.4	编译uImage时缺少mkimage命令
 解决方法：
 从https://launchpad.net/ubuntu/xenial/amd64/u-boot-tools/2016.01+dfsg1-2ubuntu1 
 下载u-boot-tools_2016.01+dfsg1-2ubuntu1_amd64.deb 
 后使用 dpkg 命令安装
-7.5	SD卡烧写linux系统
+###7.5	SD卡烧写linux系统
 1.	烧写Uboot 
 1) 在电脑上先用命令 sudo apt-get install android-tools-fastboot 安装 fastboot 工具; 
 2) 用串口配件连接NanoPi2和电脑，在上电启动的2秒内，在串口终端上按下回车，进入 u-boot 的命令行模式；
