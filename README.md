@@ -65,11 +65,11 @@ turn-wifi-into-apmode no
 ###3.2	解决方案
 ####3.2.1	10us电平输出。
 技术实现：
-1.PWM的使用方法 （不行，因为S5P4418的PWM的范围是30HZ ） 
+- 1.PWM的使用方法 （不行，因为S5P4418的PWM的范围是30HZ ） 
 → 使用matrix-pwm，需要编译module，然后安装。
-（1）但这个编译需要在板子上进行。老版matrix编译需要gccX64（64位，不能在板子运行）。目前下载新版matrix，通过U盘拷贝到板子上，再次尝试。
+- （1）但这个编译需要在板子上进行。老版matrix编译需要gccX64（64位，不能在板子运行）。目前下载新版matrix，通过U盘拷贝到板子上，再次尝试。
 TODO：在板子上编译
-（2）在drivers/char中有matrix_pwm.c和matrix_gpio_int.c，
+- （2）在drivers/char中有matrix_pwm.c和matrix_gpio_int.c，
 在drivers/char中的Makefile有
 obj-$(CONFIG_MATRIX_GPIO_INT)	+= matrix_gpio_int.o
 obj-$(CONFIG_MATRIX_PWM)	+= matrix_pwm.o
@@ -84,13 +84,13 @@ TODO：修改nanopi2_linux_deconfig，和将/drivers/char/Kconfig中的相应的
 使用gitsmart查看Nanopi2的更新history，找到和PWM相关的Module。
 →已有相应的程序 /drivers/char/中，在Makefile中有相应的obj，在/drivers/char/Kconfig最后几行中也有相应的配置，但都是设为m（Build as a module, to be loaded if needed.）
 必要时可以更改以上程序进行优化。
-2. 使用GPIO来实现控制
-（1）Timer控制
+- 2. 使用GPIO来实现控制
+- （1）Timer控制
 Delay实现：#include <unistd.h>
 usleep(20); //delay 20us
 
-（2）GPIO控制 
-I．用户态监听GPIO 
+- （2）GPIO控制 
+- I．用户态监听GPIO 
 解决方案：
 https://www.kernel.org/doc/Documentation/gpio/sysfs.txt
 http://blog.csdn.net/gqb_driver/article/details/8620809
@@ -113,7 +113,7 @@ _#include <sys/times.h>
 	clock_gettime(CLOCK_REALTIME,&time_end);
 	fCostTime = (long)(time_end.tv_nsec - time_start.tv_nsec);
 这种方案可以测出距离，但很不稳定，会有错误的距离算出，会有负值的距离算出，而且是一个正确的，后面一个负值，在后面一个正确值。并且程序会卡死，原理待查
-II. 内核态监听GPIO： 参照matrix-ultrasonicranger使用matrix_hcsr04模块
+- II. 内核态监听GPIO： 参照matrix-ultrasonicranger使用matrix_hcsr04模块
 难点：
 ①matrix-ultrasonicranger的硬件管脚只有三个，VDD/GND/Controller其中Controller管脚是发出Triger信号和接受返回信息。
 ②matrix-ultrasonicranger调用/sys/class/hcsr04模块来实现的。Hcsr04由/lib/modules/3.4.39-sp54418/kernel/driver/char/matrix_hcsrc04.ko 来加载，该模块的源代码是linux/drivers/char/matrix_hcsr04.c
@@ -128,11 +128,11 @@ Driver for Matrix hcsr04.
 代码实现途径 Matrix_ultrasonic_ranger.c → iio.c →matrix_hcsr04.c
 解决方法：根据手中的板子修改iio.c 和 matrix_hcsr04.c增加一个PIN的操作。
 TODO：先将matrix_hcsr04.c中的发出Triger信号的PIN口固定。
-修改方法：
-1.修改iio.c中的Hcsr04Init，增加一个pin初始化
+- 修改方法：
+- 1.修改iio.c中的Hcsr04Init，增加一个pin初始化
 int Hcsr04Init(int Pin) →  Hcsr04Init(int cont, int echo)
 libfahw-iio.h 中HCSR04_resource 中增加一个pin
-2.修改matrix_hcsr04.c
+- 2.修改matrix_hcsr04.c
 HCSR04_resource()中增加pin定义
 hcsr04_value_write()中获取pin值
 hcsr04_hwinit()中获取pin资源
@@ -141,22 +141,22 @@ gpio_isr（）中更改gpio的变量名
 hcsr04_hwexit()增加io口释放
 使用demo中的matrix_ultrasonicranger做测试（修改Hcsr04Init的调用）。
 发生：Fail to get distance
-Debug：
-1.在readValueFromFile中添加printf → 运行时没有打印出来，
+- Debug：
+- 1.在readValueFromFile中添加printf → 运行时没有打印出来，
    在matrix_hcsr04的hcsr04_value_read()中增加对ECHO管脚的输入设置 
    →使用dmesg查看，发现有hcsr04_value_read timeout 错误发生
    原因：在/lib/modules/3.4.39-sp54418/kernel/driver/char/中的.ko都是原先就存在的并不是修改过的文件编译而成的。
-2.先编译模块.ko http://salomi.blog.51cto.com/389282/362444
+- 2.先编译模块.ko http://salomi.blog.51cto.com/389282/362444
   在drivers/char目录下的Kconfig中把要编译的模块default值改为m
   然后make modules 则在相应的文件目录下可见.ko
   将matrix_hcsr04.ko拷贝到rootf/lib/modules/3.4.39-sp54418/kernel/driver/char/
   再次上电运行，按照模块后，修改过的printk（…..add）出现
   但运行matrix_ultrasonicranger, 仍旧报Fail to get distance 
   查看dmesg 在模块中所加的其他printk都未出现。
-3.增加printk逐步查看
+- 3.增加printk逐步查看
 在matrix_hcsr04.c的hcsr04_value_write()添加输入参数监控，发现:len=4,trigPin=58,echoPin=0,而且该函数被调用两次，第二次时是在Hcsr04Deinit()中调用的，在该函数中trigIO被复位到-1，在第二次的Log中 trigPin=-1。这就说明程序的通路没有问题，关键点在echopin的值没有被传过去。
 将iio.c中fwrite的sizeof改为8，结果不便。现在问题关键在fwrite如何调用class_attribute中的store接口的？
-4.直接在matrix_hcsr04中指定trigPio = 58  echoPio=59
+- 4.直接在matrix_hcsr04中指定trigPio = 58  echoPio=59
 设置irq成功，但仍未收到中断。
 示波器检测到器件的输入和输出波形，故trigpin没有问题。
 将GPIO27 改为GPIO30后成功过一次，结果为13CM。但后面就再没成功过。
@@ -168,7 +168,7 @@ Debug：
 难道模块又坏了，→ 友善之臂的驱动会损坏hcsr04硬件模块？
 在家用所有的hcsr04模块试验了一下，发现近距离无法检测，只有远距离才能检测成功。
 原因待查
-5.因为FA和网上使用的是class方法，不知道处于什么原因。待查
+- 5.因为FA和网上使用的是class方法，不知道处于什么原因。待查
 这里用device char(字符型设备)模式来实现看看看有什么异常.
 参考：http://blog.chinaunix.net/uid-25014876-id-59416.html
 http://www.latelee.org/embedded-linux/a-simple-char-driver.html
@@ -250,8 +250,8 @@ private void gravityTest(){
 ####5.3.1	方案：使用占空比为50%的方波进行前进与后退控制
 难点：占空比方波的实现方法，方波的周期。
 实现：使用PWM来实现方波，PWM的实现方法
-1.调用/drivers/char/matrix_pwm.c来建立PWM的device
-2.调用Matrix/lib/pwm.c中的PWMPlay()和PWMStop()对PWM进行控制。
+- 1.调用/drivers/char/matrix_pwm.c来建立PWM的device
+- 2.调用Matrix/lib/pwm.c中的PWMPlay()和PWMStop()对PWM进行控制。
 目前使用HZ=1000 duty=500,当duty<500时无法驱动电机。
 ####5.3.2	
 
@@ -259,26 +259,27 @@ private void gravityTest(){
 ##6	程序架构设计
 设计auto,menu,traction三个操作模式:
 难点：模式切换时，线程的终止与重启。
-方案：1.使用pthread_kill, 发送SIGKILL. 结果发生进程退出
-2. 使用pthread_cancel.只能在创建该线程的线程中调用。
-3. 利用全局变量，当发现被置位时，退出循环而退出线程。
+方案：
+- 1.使用pthread_kill, 发送SIGKILL. 结果发生进程退出
+- 2. 使用pthread_cancel.只能在创建该线程的线程中调用。
+- 3. 利用全局变量，当发现被置位时，退出循环而退出线程。
 设置start，stop 状态模式
 ##7	附注
 
 ###7.1	Linux signal处理
-1.	初始化struct sigaction
-2.	初始化sa_handler
-3.	调用int sigaddset(sigset_t *set,int signum);
-4.	调用int sigaction(int signum,const struct sigaction *act ,struct sigaction *oldact);
+- 1.	初始化struct sigaction
+- 2.	初始化sa_handler
+- 3.	调用int sigaddset(sigset_t *set,int signum);
+- 4.	调用int sigaction(int signum,const struct sigaction *act ,struct sigaction *oldact);
 ###7.2	Uboot 编译时 make s5p4418_nanopi2_config 发生 bin/sh 0 illegal option –
-1.	所使用的uboot源码是用smartgit pull下来的故里面的文件时dos编码，故在ubuntu上使用bash编译前要使用 dos2unix mkconfig来进行转码到utf8才行
-2.	要转变文件夹内所有文件编码：find -type f | xargs dos2unix -o
+- 1.	所使用的uboot源码是用smartgit pull下来的故里面的文件时dos编码，故在ubuntu上使用bash编译前要使用 dos2unix mkconfig来进行转码到utf8才行
+- 2.	要转变文件夹内所有文件编码：find -type f | xargs dos2unix -o
 ###7.3	编译linux时，直接使用make 时发生no rule to make target 'net/netfilter/xt_tcpmss.o' , needed by net/netfilter/built-in.o'
 解决过程：
-1. obj-y生成built-in.o
+- 1. obj-y生成built-in.o
 Kbuild编译所有的$(obj-y)文件，并调用”$(LD) -r”把所有这些文件合并到built-in.o文件。这个built-in.o会被上一级目录的Makefile使用，最终链接到vmlinux中。
 
-2. MSS 作用
+- 2. MSS 作用
 MSS表示TCP数据包的每次能够传输的最大数据分段。MSS的主要作用是在TCP建立连接的过程通常要写上对发的MSS值，这个值是TCP协议实现的时候根据MTU换算而得（主要是1500-20个大小的包头-20个大小的TCP数据包头）。因此一般的MSS值大小为1460. 
 
 发现在/net/netfilter/Makefile中有obj-$(CONFIG_NETFILTER_XT_TARGET_TCPMSS) += xt_TCPMSS.o 但与文件名xt_tcpmss不同（大小写不同）。将大写改为小写后通过编译。
@@ -288,15 +289,15 @@ MSS表示TCP数据包的每次能够传输的最大数据分段。MSS的主要�
 下载u-boot-tools_2016.01+dfsg1-2ubuntu1_amd64.deb 
 后使用 dpkg 命令安装
 ###7.5	SD卡烧写linux系统
-1.	烧写Uboot 
-1) 在电脑上先用命令 sudo apt-get install android-tools-fastboot 安装 fastboot 工具; 
-2) 用串口配件连接NanoPi2和电脑，在上电启动的2秒内，在串口终端上按下回车，进入 u-boot 的命令行模式；
-3) 在u-boot 命令行模式下输入命令 fastboot 回车，进入 fastboot 模式； 
-4) 用microUSB线连接NanoPi2和电脑，在电脑上输入以下命令烧写u-boot.bin: fastboot flash bootloader u-boot.bin 
+- 1.	烧写Uboot 
+- 1) 在电脑上先用命令 sudo apt-get install android-tools-fastboot 安装 fastboot 工具; 
+- 2) 用串口配件连接NanoPi2和电脑，在上电启动的2秒内，在串口终端上按下回车，进入 u-boot 的命令行模式；
+- 3) 在u-boot 命令行模式下输入命令 fastboot 回车，进入 fastboot 模式； 
+- 4) 用microUSB线连接NanoPi2和电脑，在电脑上输入以下命令烧写u-boot.bin: fastboot flash bootloader u-boot.bin 
 
 *如果是空卡，使用dd命令  http://www.cnblogs.com/humaoxiao/p/4282903.html
 烧写后，未能成功启动。→ 原因待查
-2.	烧写Uimage:将uImage拷贝到SD卡的boot分区中。
+- 2.	烧写Uimage:将uImage拷贝到SD卡的boot分区中。
 
 	
    
