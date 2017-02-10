@@ -9,6 +9,7 @@ Matrix - CAM500A
 需UVC driver/tool（tool中自带视频服务器功能）
 →motion使用：
 安装：
+
 `sudo apt-get install motion`
   配置：
 `sudo vi /etc/motion/motion.conf`
@@ -25,31 +26,35 @@ $sudo apt-get install imagemagick
 ```
 mjpg_streamer源码包进行编译安装，这里说明一下，直接编译安装程序会报错，需要先运行一下命令，创建一个软连接
 
-sudo ln -s /usr/include/libv4l1-videodev.h /usr/include/linux/videodev.h  
+`sudo ln -s /usr/include/libv4l1-videodev.h /usr/include/linux/videodev.h  `
 创建完成后开始下载编译安装mjpg_streamer源码包
+```
 $wget http://sourceforge.net/code-snapshots/svn/m/mj/mjpg-streamer/code/mjpg-streamer-code-182.zip 
 $unzip mjpg-streamer-code-182.zip 
 $cd mjpg-streamer-code-182/mjpg-streamer  
 &sudo make USE_LIBV4L2=true clean all 
-$sudo make DESTDIR=/usr install  
+$sudo make DESTDIR=/usr install 
+```
 编译安装完成后，运行程序目录下的start..sh命令启动服务
 监控端口: 8080 
 
 ###1.2	视频服务器建立
 ####1.2.1	Nanopi2取消热点模式
 实现方法：用vi或在图形界面下用gedit编辑文件 /etc/wpa_supplicant/wpa_supplicant.conf, 在文件末尾填入路由器信息如下所示：
+```
 network={
         ssid="YourWiFiESSID"
 	psk="YourWiFiPassword"
 }
+```
 其中，YourWiFiESSID和YourWiFiPassword请替换成你要连接的无线AP名称和密码。
 保存退出后，执行以下命令即可连接WiFi: 
+```
 ifdown wlan0
 ifup wlan0
+```
 如果你的WiFi当前处于无线热点模式，你需要先退出该模式方可连接到路由器，使用以下命令退出无线热点模式：
-su
-turn-wifi-into-apmode no
-
+`su turn-wifi-into-apmode no`
 
 ####1.2.2	UDP协议来传输
 ###1.3	WIFI视频传输
@@ -74,11 +79,15 @@ turn-wifi-into-apmode no
 TODO：在板子上编译
 - （2）在drivers/char中有matrix_pwm.c和matrix_gpio_int.c，
 在drivers/char中的Makefile有
+```
 obj-$(CONFIG_MATRIX_GPIO_INT)	+= matrix_gpio_int.o
 obj-$(CONFIG_MATRIX_PWM)	+= matrix_pwm.o
+```
 在arch/arm/configs中的nanopi2_linux_deconfig中有
+```
 CONFIG_MATRIX_GPIO_INT=m
 CONFIG_MATRIX_PWM=m
+```
 以上说明nanopi2中已经将gpio_sensor和pwm模块做好，但是没有直接编入内核，需要手动使用insmod 加载。
 TODO：在板子的drivers中检查是否有相应的ko文件？可行
 *在/lib/modules/3.4.39-s5p4418/kernel/drivers/char/中有相应的ko
@@ -89,9 +98,11 @@ TODO：修改nanopi2_linux_deconfig，和将/drivers/char/Kconfig中的相应的
 必要时可以更改以上程序进行优化。
 - 2. 使用GPIO来实现控制
 - （1）Timer控制
-Delay实现：#include <unistd.h>
+Delay实现：
+```
+#include <unistd.h>
 usleep(20); //delay 20us
-
+```
 - （2）GPIO控制 
 - I．用户态监听GPIO 
 解决方案：
@@ -109,23 +120,29 @@ ultrasonicEcho管脚定为GPIO18
 技术难点：
 us级别的时间检测 → Linux中计时器的使用
 时间计算：http://www.cnblogs.com/clover-toeic/p/3845210.html
-_#include <sys/times.h>
+```
+#include <sys/times.h>
+
 	struct timespec time_start={0,0},time_end={0,0};
 	long fCostTime;
 	clock_gettime(CLOCK_REALTIME,&time_start);
 	clock_gettime(CLOCK_REALTIME,&time_end);
 	fCostTime = (long)(time_end.tv_nsec - time_start.tv_nsec);
+```	
+
 这种方案可以测出距离，但很不稳定，会有错误的距离算出，会有负值的距离算出，而且是一个正确的，后面一个负值，在后面一个正确值。并且程序会卡死，原理待查
 - II. 内核态监听GPIO： 参照matrix-ultrasonicranger使用matrix_hcsr04模块
 难点：
 ①matrix-ultrasonicranger的硬件管脚只有三个，VDD/GND/Controller其中Controller管脚是发出Triger信号和接受返回信息。
 ②matrix-ultrasonicranger调用/sys/class/hcsr04模块来实现的。Hcsr04由/lib/modules/3.4.39-sp54418/kernel/driver/char/matrix_hcsrc04.ko 来加载，该模块的源代码是linux/drivers/char/matrix_hcsr04.c
 设置linux编译时加载方法：在/drivers/char/Kconfig 中
+```
 config MATRIX_HCSR04
 tristate "Matrix hcsr04"
 default m
 ---help---
 Driver for Matrix hcsr04.
+```
 将default m  改为 default y
 
 代码实现途径 Matrix_ultrasonic_ranger.c → iio.c →matrix_hcsr04.c
@@ -203,14 +220,14 @@ http://www.latelee.org/embedded-linux/a-simple-char-driver.html
 Linux 线程通信方法：http://blog.csdn.net/ljianhui/article/details/10287879 
 msgget(key_t key, int msgflg) 创建访问消息队列
 msgsnd(int msgid, const void *msg_ptr, size_t msg_sz, int msgflg) 把消息添加到消息队列中，其中msg_ptr所指向的消息结构一定要以一个长整形的成员变量开始的结构体，接受函数将用这个成员来确定消息的类型。
+```
 Struct my_message{
 Long int message_type;
 /*The data you want to tranfer*/
 };
 msgrcv(int msgid, void *msg_ptr, size_t msg_st, long int msgtype, int msgflg)
 msgctl(int msgid, int command, struct msgid_ds *buf);// command值为IPC_RMID是删除消息队列
-
-
+```
 #####3.2.3.2	改变行驶状态的解决方案
 
 
@@ -230,6 +247,7 @@ msgctl(int msgid, int command, struct msgid_ds *buf);// command值为IPC_RMID是
 手机向前倾斜时（Z轴值>6）：车子前进
 手机向后倾斜式（Z轴值<6）：车子后退
 ###5.2	Android重力加速传感器使用
+```
 private void gravityTest(){
 	sensorMgr = (SensorManager) getSystemService(SENSOR_SERVICE);
 	final Sensor sensor = sensorMgr.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -247,7 +265,7 @@ private void gravityTest(){
 	};
 	sensorMgr.registerListener(lsn, sensor, SensorManager.SENSOR_DELAY_UI);
 }
-
+```
 ###5.3	改变小车行驶速度
 
 ####5.3.1	方案：使用占空比为50%的方波进行前进与后退控制
