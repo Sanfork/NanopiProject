@@ -9,20 +9,20 @@ Matrix - CAM500A
 需UVC driver/tool（tool中自带视频服务器功能）
 →motion使用：
 安装：
-'sudo apt-get install motion'
-  配置：
-'sudo vi /etc/motion/motion.conf'
-  找到”control_localhost on “和”webcam_localhost on“这两行，改为以下两行后，保存退出
- 'control_localhost off'
- 'webcam_localhost off'
+`sudo apt-get install motion`
+  配置：
+`sudo vi /etc/motion/motion.conf`
+  找到”control_localhost on “和”webcam_localhost on“这两行，改为以下两行后，保存退出
+ `control_localhost off`
+ `webcam_localhost off`
    调试：配置端口8080 监控端口8081
         →mjpg_streamer
 	安装：
-'''
+```
 $sudo apt-get install libv4l-dev
 $sudo apt-get install libjpeg8-dev 
 $sudo apt-get install imagemagick
-'''
+```
 mjpg_streamer源码包进行编译安装，这里说明一下，直接编译安装程序会报错，需要先运行一下命令，创建一个软连接
 
 sudo ln -s /usr/include/libv4l1-videodev.h /usr/include/linux/videodev.h  
