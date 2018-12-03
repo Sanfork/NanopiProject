@@ -1,5 +1,5 @@
 # Smart Car Project
-##1	视频部分
+## 1	视频部分
 ###1.1	摄像头选择
 ####1.1.1	DVP接口摄像头
 Matrix - CAM500A
