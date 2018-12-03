@@ -1,11 +1,11 @@
 # Smart Car Project
 ## 1	视频部分
-###1.1	摄像头选择
-####1.1.1	DVP接口摄像头
+### 1.1	摄像头选择
+#### 1.1.1	DVP接口摄像头
 Matrix - CAM500A
 需求：驱动，视频服务器，
 实现困难，暂不采取
-####1.1.2	USB摄像头
+#### 1.1.2	USB摄像头
 需UVC driver/tool（tool中自带视频服务器功能）
 →motion使用：
 安装：
@@ -38,8 +38,8 @@ $sudo make DESTDIR=/usr install
 编译安装完成后，运行程序目录下的start..sh命令启动服务
 监控端口: 8080 
 
-###1.2	视频服务器建立
-####1.2.1	Nanopi2取消热点模式
+### 1.2	视频服务器建立
+#### 1.2.1	Nanopi2取消热点模式
 实现方法：用vi或在图形界面下用gedit编辑文件 /etc/wpa_supplicant/wpa_supplicant.conf, 在文件末尾填入路由器信息如下所示：
 ```
 network={
@@ -56,22 +56,22 @@ ifup wlan0
 如果你的WiFi当前处于无线热点模式，你需要先退出该模式方可连接到路由器，使用以下命令退出无线热点模式：
 `su turn-wifi-into-apmode no`
 
-####1.2.2	UDP协议来传输
-###1.3	WIFI视频传输
+#### 1.2.2	UDP协议来传输
+### 1.3	WIFI视频传输
 
-##2	Android app 实现
-###2.1	APP访问视频服务器并显示
-###2.2
+## 2	Android app 实现
+### 2.1	APP访问视频服务器并显示
+### 2.2
 
-##3	避障
-###3.1	使用HC-SR04超声波测距模块
-####3.1.1	硬件说明
+## 3	避障
+### 3.1	使用HC-SR04超声波测距模块
+#### 3.1.1	硬件说明
 1.  采用IO口TRIG触发测距。给至少10us的高电平信号	
 2.  模块自动发送8个40khz的方波，自动检测是否有信号返回	
 3.  有信号返回，通过IO口ECHO输出一个高电平，高电平持续时间就是超声波从发射到返回的时间。测试距离=（高电平时间*声速（340M/S））/2.
 
-###3.2	解决方案
-####3.2.1	10us电平输出。
+### 3.2	解决方案
+#### 3.2.1	10us电平输出。
 技术实现：
 1. PWM的使用方法 （不行，因为S5P4418的PWM的范围是30HZ ） 
 → 使用matrix-pwm，需要编译module，然后安装。
@@ -210,9 +210,10 @@ http://www.latelee.org/embedded-linux/a-simple-char-driver.html
 ②	创建设备文件 mknod /dev/hcsr04 c 主设备号 次设备号 (cat /proc/devices 查询主设备号)
 运行成功，距离检测正确。
 遗留问题：使用一次后再开，出现open device faile 待查 → 没有free_irq。
-####3.2.2	在主控程序中调用HCSR04设备。
+
+#### 3.2.2	在主控程序中调用HCSR04设备。
 由于实验中出现误报的情况，故在监听中加入滤波功能，即受到距离在少于或超出某个范围时，等下一次测量来进行确认。确认情况改变后在发出消息。
-####3.2.3	避障处理方案
+#### 3.2.3	避障处理方案
 
 
 #####3.2.3.1	总体方案
@@ -228,7 +229,7 @@ Long int message_type;
 msgrcv(int msgid, void *msg_ptr, size_t msg_st, long int msgtype, int msgflg)
 msgctl(int msgid, int command, struct msgid_ds *buf);// command值为IPC_RMID是删除消息队列
 ```
-#####3.2.3.2	改变行驶状态的解决方案
+##### 3.2.3.2	改变行驶状态的解决方案
 
 
 ####3.2.4	模式切换。
