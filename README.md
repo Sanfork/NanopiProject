@@ -216,7 +216,7 @@ http://www.latelee.org/embedded-linux/a-simple-char-driver.html
 #### 3.2.3	避障处理方案
 
 
-#####3.2.3.1	总体方案
+##### 3.2.3.1	总体方案
 在选择Auto运行状态后，开启一个进程开始控制小车自动行驶，同时再开一个超声波的进程来监控距离。两个进程之间使用消息队列进行通信。超声波进程通知小车距离障碍的安全与危险状态。当小车收到危险状态时，改变车子的行驶状态，直到收到安全状态通知为止。
 Linux 线程通信方法：http://blog.csdn.net/ljianhui/article/details/10287879 
 msgget(key_t key, int msgflg) 创建访问消息队列
